@@ -25,7 +25,7 @@ osx-openconnect-helper
 
   From that point onwards you can add a vpn:
 
-    $ openconnect-helper add myvpn https://myvpn.com/ --user me
+    $ openconnect-helper add myvpn https://myvpn.invalid/ --user me
 
   And connect:
 
