@@ -7,6 +7,7 @@ setup(
     license='BSD',
     author='Armin Ronacher',
     author_email='armin.ronacher@active-4.com',
+    url='https://github.com/mitsuhiko/osx-openconnect-helper',
     py_modules=['openconnect_helper'],
     install_requires=[
         'Click',
