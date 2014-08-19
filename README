@@ -1,0 +1,30 @@
+osx-openconnect-helper
+
+  This program is a tiny helper application to connect to different
+  Cisco VPNs through openconnect on OS X.  It just wraps openconnect
+  to add some basic profile support.
+
+  How to make it run on OS X:
+
+    $ brew install openconnect
+    $ brew install tunap
+
+  For tuntap follow the guides after installation and don't forget to
+  load the kext.
+
+  If you do not have vpnc-script you can download it:
+
+    http://www.infradead.org/openconnect/vpnc-script.html
+
+  To install place it in /etc/vpnc/vpnc-script and make sure it
+  is executable.
+
+  To install osx-openconnect-helper use pip or pipsi:
+
+    $ pipsi install osx-openconnect-helper
+
+  From that point onwards you can add a vpn:
+
+    $ openconnect-helper add myvpn https://myvpn.com/ --user me
+
+  It uses the OS X keychain to manage passwords.
