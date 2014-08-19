@@ -27,4 +27,8 @@ osx-openconnect-helper
 
     $ openconnect-helper add myvpn https://myvpn.com/ --user me
 
+  And connect:
+
+    $ openconnect-helper connect myvpn
+
   It uses the OS X keychain to manage passwords.
