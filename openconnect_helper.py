@@ -1,5 +1,8 @@
 import os
+import re
 import errno
+import shutil
+import tempfile
 
 import toml
 import click
@@ -11,6 +14,9 @@ from subprocess import Popen, PIPE
 CREATOR = 'OOCh'
 
 devnull = open(os.path.devnull, 'w')
+
+
+_token_re = re.compile(r'^token (.*?)$(?m)')
 
 
 def _make_toml_group(**fields):
@@ -50,7 +56,8 @@ class ProfileManager(object):
             if profile.get('name') == name:
                 return profile
 
-    def set_keychain_password(self, name, url, user, password):
+    def set_keychain_password(self, name, url, user, password,
+                              kind='openconnect'):
         urlinfo = urlparse(url)
         if ':' in urlinfo.netloc:
             server, port = urlinfo.netloc.split(':', 1)
@@ -60,29 +67,52 @@ class ProfileManager(object):
         protocol = urlinfo.scheme == 'https' and 'htps' or 'http'
         path = urlinfo.path or '/'
 
-        self.remove_keychain_password(name)
+        self.remove_keychain_password(name, kind=kind)
         Popen(['security', 'add-internet-password',
-               '-c', CREATOR, '-s', server, '-P', port, '-D', 'openconnect',
+               '-c', CREATOR, '-s', server, '-P', port, '-D', kind,
                '-r', protocol, '-p', path, '-w', password, '-a', user,
                '-l', name, '-T', ''], stdout=devnull, stderr=devnull).wait()
 
-    def remove_keychain_password(self, name):
+    def remove_keychain_password(self, name, kind='openconnect'):
         Popen(['security', 'delete-internet-password',
-               '-c', CREATOR, '-l', name, '-D', 'openconnect'],
+               '-c', CREATOR, '-l', name, '-D', kind],
               stdout=devnull,
               stderr=devnull).wait()
 
-    def get_keychain_password(self, name):
+    def get_keychain_password(self, name, kind='openconnect'):
         c = Popen(['security', 'find-internet-password',
-               '-c', CREATOR, '-l', name, '-D', 'openconnect', '-w'],
+               '-c', CREATOR, '-l', name, '-D', kind, '-w'],
               stdout=PIPE,
               stderr=devnull)
         password = c.communicate()[0].rstrip('\r\n')
         if c.returncode == 0:
             return password
 
-    def set_profile(self, name, url, user, group=None, password=None,
-                    fingerprint=None):
+    def import_rsa_token(self, name, url, token):
+        folder = tempfile.mkdtemp()
+        fn = os.path.join(folder, 'stokenrs')
+        rv = Popen(['stoken', 'import', '--token=%s' % token,
+                    '--rcfile', fn, '--new-password=']).wait()
+        try:
+            if rv != 0:
+                raise click.UsageError('Could not import token')
+            with open(fn) as f:
+                token = _token_re.search(f.read()).group(1)
+            self.set_keychain_password(name, url, '', token,
+                                       kind='openconnect-rsa')
+        finally:
+            try:
+                shutil.rmtree(folder)
+            except Exception:
+                pass
+
+    def remove_rsa_token(self, name):
+        return self.remove_keychain_password(name, kind='openconnect-rsa')
+
+    def get_rsa_token(self, name):
+        return self.get_keychain_password(name, kind='openconnect-rsa')
+
+    def set_profile(self, name, url, user, group=None, fingerprint=None):
         profiles = self.config.setdefault('profiles', [])
         for idx, profile in enumerate(profiles):
             if profile.get('name') == name:
@@ -95,6 +125,7 @@ class ProfileManager(object):
 
     def remove_profile(self, name):
         self.remove_keychain_password(name)
+        self.remove_rsa_token(name)
         profiles = self.config.setdefault('profiles', [])
         profiles[:] = [x for x in profiles if x.get('name') != name]
 
@@ -111,6 +142,8 @@ class ProfileManager(object):
         kwargs = {}
         stdin = None
         password = self.get_keychain_password(name)
+        rsa_token = self.get_rsa_token(name)
+
         args = ['sudo', 'openconnect']
         if not cert_check:
             args.append('--no-cert-check')
@@ -121,10 +154,14 @@ class ProfileManager(object):
         group = profile.get('group')
         if group is not None:
             args.append('--authgroup=%s' % group)
+
         if password is not None:
             args.append('--passwd-on-stdin')
             stdin = password
             kwargs['stdin'] = PIPE
+        elif rsa_token is not None:
+            args.append('--token-mode=rsa')
+            args.append('--token-secret=%s' % rsa_token)
 
         fingerprint = profile.get('fingerprint')
         if fingerprint is not None:
@@ -190,6 +227,11 @@ def common_profile_params(f):
                      help='Prompts for a password.')(f)
     f = click.option('--remove-password', is_flag=True,
                      help='Removes an already set password.')(f)
+    f = click.option('--rsa-token', help='The RSA token to import.  This '
+                     'requires stoken to be installed and compiled into '
+                     'openconnect.')(f)
+    f = click.option('--remove-rsa-token', help='Removes an old RSA token.',
+                     is_flag=True)(f)
     return f
 
 
@@ -198,14 +240,22 @@ def update_profile(manager, name, fields):
     remove_password = fields.pop('remove_password')
     if fields.pop('ask_password'):
         password = click.prompt('Password', hide_input=True)
+    rsa_token = fields.pop('rsa_token')
+    remove_rsa_token = fields.pop('remove_rsa_token')
     manager.set_profile(name, **fields)
     manager.save()
+
     if password is not None:
         manager.set_keychain_password(name, url=fields['url'],
                                       user=fields['user'],
                                       password=password)
     elif remove_password:
         manager.remove_keychain_password(name)
+
+    if rsa_token is not None:
+        manager.import_rsa_token(name, fields['url'], rsa_token)
+    elif remove_rsa_token:
+        manager.remove_rsa_token(name)
 
 
 @click.group()
