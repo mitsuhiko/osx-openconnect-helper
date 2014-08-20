@@ -214,24 +214,28 @@ def validate_fingerprint(ctx, param, value):
 
 
 def common_profile_params(f):
-    f = click.option('--url', help='The AnyConnect URL endpoint.',
-                     callback=validate_url, required=True)(f)
-    f = click.option('--user', help='The username to log in.', required=True)(f)
-    f = click.option('--group', help='The group to log in through.')(f)
-    f = click.option('--password', help='Sets the new password.')(f)
-    f = click.option('--fingerprint', help='The fingerprint of the server.  '
+    options = [
+        click.option('--url', help='The AnyConnect URL endpoint.',
+                     callback=validate_url, required=True),
+        click.option('--user', help='The username to log in.', required=True),
+        click.option('--group', help='The group to log in through.'),
+        click.option('--fingerprint', help='The fingerprint of the server.  '
                      'This is the SHA1 fingerprint of the certificate which '
                      'can be used to connect to untrusted servers.',
-                     callback=validate_fingerprint)(f)
-    f = click.option('--ask-password', is_flag=True,
-                     help='Prompts for a password.')(f)
-    f = click.option('--remove-password', is_flag=True,
-                     help='Removes an already set password.')(f)
-    f = click.option('--rsa-token', help='The RSA token to import.  This '
+                     callback=validate_fingerprint),
+        click.option('--password', help='Sets the new password.'),
+        click.option('--ask-password', is_flag=True,
+                     help='Prompts for a password.'),
+        click.option('--remove-password', is_flag=True,
+                     help='Removes an already set password.'),
+        click.option('--rsa-token', help='The RSA token to import.  This '
                      'requires stoken to be installed and compiled into '
-                     'openconnect.')(f)
-    f = click.option('--remove-rsa-token', help='Removes an old RSA token.',
-                     is_flag=True)(f)
+                     'openconnect.'),
+        click.option('--remove-rsa-token', help='Removes an old RSA token.',
+                     is_flag=True)
+    ]
+    for option in reversed(options):
+        f = option(f)
     return f
 
 
