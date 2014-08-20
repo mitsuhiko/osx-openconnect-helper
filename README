@@ -7,7 +7,7 @@ osx-openconnect-helper
   How to make it run on OS X:
 
     $ brew install openconnect
-    $ brew install tunap
+    $ brew install tuntap
 
   For tuntap follow the guides after installation and don't forget to
   load the kext.
