@@ -327,6 +327,7 @@ def list_profiles(ctx):
             click.echo()
         click.echo('%s:' % profile['name'])
         click.echo('  url: %s' % profile['url'])
+        click.echo('  fingerprint: %s' % profile.get('fingerprint', '<unset>'))
         click.echo('  user: %s' % profile.get('user', '<unset>'))
         click.echo('  group: %s' % profile.get('group', '<unset>'))
         click.echo('  auth: %s' % ctx.profile_manager
