@@ -129,6 +129,16 @@ class ProfileManager(object):
         profiles = self.config.setdefault('profiles', [])
         profiles[:] = [x for x in profiles if x.get('name') != name]
 
+    def get_stored_profile_auth(self, name):
+        kinds = (('openconnect', 'password'),
+                 ('openconnect-rsa', 'rsa-token'))
+        for kind, display_name in kinds:
+            if Popen(['security', 'find-internet-password',
+                      '-c', CREATOR, '-l', name, '-D', kind],
+                     stdout=devnull, stderr=devnull).wait() == 0:
+                return display_name
+        return 'interactive'
+
     def iter_profiles(self):
         for profile in self.config.get('profiles') or ():
             if profile.get('name') is not None:
@@ -312,8 +322,15 @@ def remove_profile(ctx, name, **kwargs):
 @pass_context
 def list_profiles(ctx):
     """Lists all profiles."""
-    for profile in ctx.profile_manager.iter_profiles():
-        print profile['name']
+    for idx, profile in enumerate(ctx.profile_manager.iter_profiles()):
+        if idx:
+            click.echo()
+        click.echo('%s:' % profile['name'])
+        click.echo('  url: %s' % profile['url'])
+        click.echo('  user: %s' % profile.get('user', '<unset>'))
+        click.echo('  group: %s' % profile.get('group', '<unset>'))
+        click.echo('  auth: %s' % ctx.profile_manager
+                   .get_stored_profile_auth(profile['name']))
 
 
 @cli.command('connect')
