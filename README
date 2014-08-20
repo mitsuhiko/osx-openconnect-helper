@@ -9,6 +9,10 @@ osx-openconnect-helper
     $ brew install openconnect
     $ brew install tuntap
 
+  Note that the brew version of openconnect comes without RSA token
+  support.  You will need to manually compile it and stoken support
+  if you want that.
+
   For tuntap follow the guides after installation and don't forget to
   load the kext.
 
