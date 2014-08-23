@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='osx-openconnect-helper',
-    version='0.4',
+    version='0.5',
     description='Wrapper around openconnect and the system keychain',
     license='BSD',
     author='Armin Ronacher',

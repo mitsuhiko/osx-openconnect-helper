@@ -307,10 +307,9 @@ def edit_profile(ctx, name, **kwargs):
 
 
 @cli.command('remove')
-@common_profile_params
 @click.argument('name')
 @pass_context
-def remove_profile(ctx, name, **kwargs):
+def remove_profile(ctx, name):
     """Removes a VPN profile."""
     if not ctx.profile_manager.profile_exists(name):
         raise click.UsageError('The profile "%s" does not exist.' % name)
