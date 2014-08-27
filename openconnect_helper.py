@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import errno
 import shutil
 import tempfile
@@ -340,4 +341,10 @@ def list_profiles(ctx):
 @pass_context
 def connect(ctx, name, cert_check):
     """Connects to a VPN profile."""
-    ctx.profile_manager.connect(name, cert_check=cert_check)
+    sys.stdout.write('\033]0;VPN to %s\007' % name)
+    sys.stdout.flush()
+    try:
+        ctx.profile_manager.connect(name, cert_check=cert_check)
+    finally:
+        sys.stdout.write('\033]0;\007')
+        sys.stdout.flush()
